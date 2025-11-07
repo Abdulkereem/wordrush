@@ -1,116 +1,128 @@
 // $lib/services/ads.ts
 import { AdMob } from '@capacitor-community/admob';
 import type { BannerAdOptions, InterstitialAdOptions, RewardedAdOptions } from '@capacitor-community/admob';
+import { writable } from 'svelte/store';
+import { billingService } from './billing';
 
-class AdsService {
-  private isInitialized = false;
-  private readonly adIds = {
-    banner: 'ca-app-pub-3940256099942544/6300978111', // Test ID
-    interstitial: 'ca-app-pub-3940256099942544/1033173712', // Test ID
-    rewarded: 'ca-app-pub-3940256099942544/5224354917' // Test ID
-  };
+function createAdsStore() {
+	const { subscribe, set } = writable<{ shouldShowAds: boolean }>({ shouldShowAds: true });
+	let isInitialized = false;
+	const adIds = {
+		banner: 'ca-app-pub-3940256099942544/6300978111', // Test ID
+		interstitial: 'ca-app-pub-3940256099942544/1033173712', // Test ID
+		rewarded: 'ca-app-pub-3940256099942544/5224354917' // Test ID
+	};
 
-  async initialize() {
-    try {
-      await AdMob.initialize({
-        requestTrackingAuthorization: true,
-        testingDevices: ['YOUR_DEVICE_ID'],
-        initializeForTesting: true
-      });
-      this.isInitialized = true;
-      console.log('AdMob initialized');
-    } catch (error) {
-      console.error('Failed to initialize AdMob:', error);
-    }
-  }
+	billingService.subscribe((status) => {
+		set({ shouldShowAds: !status.isVip });
+	});
 
-  async showBannerAd() {
-    if (!this.isInitialized) return;
+	async function initialize() {
+		try {
+			await AdMob.initialize({
+				requestTrackingAuthorization: true,
+				testingDevices: ['YOUR_DEVICE_ID'],
+				initializeForTesting: true
+			});
+			isInitialized = true;
+			console.log('AdMob initialized');
+		} catch (error) {
+			console.error('Failed to initialize AdMob:', error);
+		}
+	}
 
-    try {
-      const options: BannerAdOptions = {
-        adId: this.adIds.banner,
-        adSize: 'BANNER',
-        position: 'BOTTOM_CENTER',
-        margin: 0,
-        isTesting: true
-      };
-      await AdMob.showBanner(options);
-    } catch (error) {
-      console.error('Failed to show banner ad:', error);
-    }
-  }
+	async function showBannerAd() {
+		if (!isInitialized) return;
 
-  async hideBannerAd() {
-    try {
-      await AdMob.hideBanner();
-    } catch (error) {
-      console.error('Failed to hide banner ad:', error);
-    }
-  }
+		try {
+			const options: BannerAdOptions = {
+				adId: adIds.banner,
+				adSize: 'BANNER',
+				position: 'BOTTOM_CENTER',
+				margin: 0,
+				isTesting: true
+			};
+			await AdMob.showBanner(options);
+		} catch (error) {
+			console.error('Failed to show banner ad:', error);
+		}
+	}
 
-  async showInterstitialAd(): Promise<boolean> {
-    if (!this.isInitialized) return false;
+	async function hideBannerAd() {
+		try {
+			await AdMob.hideBanner();
+		} catch (error) {
+			console.error('Failed to hide banner ad:', error);
+		}
+	}
 
-    try {
-      const options: InterstitialAdOptions = {
-        adId: this.adIds.interstitial,
-        isTesting: true
-      };
-      await AdMob.prepareInterstitial(options);
-      await AdMob.showInterstitial();
-      return true;
-    } catch (error) {
-      console.error('Failed to show interstitial ad:', error);
-      return false;
-    }
-  }
+	async function showInterstitialAd(): Promise<boolean> {
+		if (!isInitialized) return false;
 
-  async showRewardedAd(): Promise<{ watched: boolean; rewarded: boolean }> {
-    if (!this.isInitialized) return { watched: false, rewarded: false };
+		try {
+			const options: InterstitialAdOptions = {
+				adId: adIds.interstitial,
+				isTesting: true
+			};
+			await AdMob.prepareInterstitial(options);
+			await AdMob.showInterstitial();
+			return true;
+		} catch (error) {
+			console.error('Failed to show interstitial ad:', error);
+			return false;
+		}
+	}
 
-    try {
-      const options: RewardedAdOptions = {
-        adId: this.adIds.rewarded,
-        isTesting: true
-      };
+	async function showRewardedAd(): Promise<{ watched: boolean; rewarded: boolean }> {
+		if (!isInitialized) return { watched: false, rewarded: false };
 
-      await AdMob.prepareRewardVideoAd(options);
+		try {
+			const options: RewardedAdOptions = {
+				adId: adIds.rewarded,
+				isTesting: true
+			};
 
-      return new Promise((resolve) => {
-        let resolved = false;
+			await AdMob.prepareRewardVideoAd(options);
 
-        const onReward = () => {
-          if (!resolved) {
-            resolved = true;
-            resolve({ watched: true, rewarded: true });
-          }
-        };
+			return new Promise((resolve) => {
+				let resolved = false;
 
-        const onClose = () => {
-          if (!resolved) {
-            resolved = true;
-            resolve({ watched: false, rewarded: false });
-          }
-        };
+				const onReward = () => {
+					if (!resolved) {
+						resolved = true;
+						resolve({ watched: true, rewarded: true });
+					}
+				};
 
-        AdMob.addListener('onRewardedVideoAdReward', onReward);
-        AdMob.addListener('onRewardedVideoAdClosed', onClose);
-        AdMob.addListener('onRewardedVideoAdFailedToLoad', onClose);
+				const onClose = () => {
+					if (!resolved) {
+						resolved = true;
+						resolve({ watched: false, rewarded: false });
+					}
+				};
 
-        AdMob.showRewardVideoAd().catch(() => {
-          if (!resolved) resolve({ watched: false, rewarded: false });
-        });
-      });
-    } catch (error) {
-      console.error('Failed to show rewarded ad:', error);
-      return { watched: false, rewarded: false };
-    }
-  }
+				AdMob.addListener('onRewardedVideoAdReward', onReward);
+				AdMob.addListener('onRewardedVideoAdClosed', onClose);
+				AdMob.addListener('onRewardedVideoAdFailedToLoad', onClose);
 
-  async shouldShowAds(): Promise<boolean> {
-    return true; // replace with billing service check for VIP
-  }
+				AdMob.showRewardVideoAd().catch(() => {
+					if (!resolved) resolve({ watched: false, rewarded: false });
+				});
+			});
+		} catch (error) {
+			console.error('Failed to show rewarded ad:', error);
+			return { watched: false, rewarded: false };
+		}
+	}
+
+	return {
+		subscribe,
+		initialize,
+		showBannerAd,
+		hideBannerAd,
+		showInterstitialAd,
+		showRewardedAd
+	};
 }
 
-export const adsService = new AdsService();
+export const adsService = createAdsStore();
