@@ -1,0 +1,38 @@
+[
+  {
+    "level": 1,
+    "grid": [
+      ["C", "A", "T", "S"],
+      ["R", "U", "N", "O"],
+      ["A", "T", "E", "G"],
+      ["B", "O", "X", "Y"]
+    ],
+    "words": ["CAT", "RUN", "ATE", "BOX", "CATS", "CRAB", "TON", "GOT"],
+    "time": 90,
+    "pointsPerWord": 10
+  },
+  {
+    "level": 2,
+    "grid": [
+      ["W", "O", "R", "D"],
+      ["L", "E", "A", "P"],
+      ["F", "U", "N", "S"],
+      ["G", "A", "M", "E"]
+    ],
+    "words": ["WORD", "LEAP", "FUN", "GAME", "FOAM", "SUN", "WAR", "DRAG", "ROW"],
+    "time": 120,
+    "pointsPerWord": 12
+  },
+  {
+    "level": 3,
+    "grid": [
+      ["S", "V", "E", "L"],
+      ["T", "E", "K", "I"],
+      ["C", "O", "D", "E"],
+      ["R", "U", "N", "S"]
+    ],
+    "words": ["SVELTE", "CODE", "RUNS", "KIT", "CORE", "DIVE", "LOTS", "REST"],
+    "time": 150,
+    "pointsPerWord": 15
+  }
+]

@@ -1,25 +1,10 @@
 <script>
   import { gameState, currentLevel, score, lives, timeLeft, foundWords, targetWords } from '../stores';
   import { onMount, onDestroy } from 'svelte';
+  import levels from '../levels.json';
 
   let currentWord = '';
   let grid = [];
-
-  const levels = [
-    {
-      level: 1,
-      grid: [
-        ['C', 'A', 'T', 'S'],
-        ['R', 'U', 'N', 'O'],
-        ['A', 'T', 'E', 'G'],
-        ['B', 'O', 'X', 'Y']
-      ],
-      words: ['CAT', 'RUN', 'ATE', 'BOX', 'CATS', 'CRAB', 'TON', 'GOT'],
-      time: 90,
-      pointsPerWord: 10
-    },
-    // ... other levels
-  ];
 
   onMount(() => {
     startLevel($currentLevel);
@@ -64,6 +49,24 @@
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  function startTimer() {
+    const timer = setInterval(() => {
+      timeLeft.update(t => {
+        if (t > 0) {
+          return t - 1;
+        } else {
+          clearInterval(timer);
+          gameState.set('gameOver');
+          return 0;
+        }
+      });
+    }, 1000);
+
+    onDestroy(() => {
+      clearInterval(timer);
+    });
   }
 </script>
 
